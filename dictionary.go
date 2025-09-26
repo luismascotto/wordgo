@@ -35,7 +35,7 @@ func NewDictionary(filename string) (*Dictionary, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		word := strings.TrimSpace(strings.ToUpper(scanner.Text()))
-		if word != "" && len(word) >= 3 {
+		if word != "" && len(word) >= MIN_WORD_LENGTH {
 			dict.words[word] = true
 			dict.insertIntoTrie(word)
 		}

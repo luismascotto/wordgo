@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"sort"
 	"strings"
@@ -26,6 +25,7 @@ var (
 const (
 	SIMULATE_SINGLE_THREAD = false
 	MAX_GOROUTINES         = 32
+	MIN_WORD_LENGTH        = 8
 )
 
 // WordResult representa uma palavra encontrada na matriz
@@ -101,11 +101,11 @@ func toWalk(word Word, limitGoroutines chan struct{}) {
 		copy(newWord.coordinates, word.coordinates)
 		if newWord.canWalk(dir) {
 			time.Sleep(10 * time.Millisecond)
-			fmt.Printf(">")
+			//fmt.Printf(">")
 			limitGoroutines <- struct{}{}
 			wg.Go(func() {
 				toWalk(newWord, limitGoroutines)
-				fmt.Printf("\b")
+				//fmt.Printf("\b")
 				<-limitGoroutines
 				time.Sleep(10 * time.Millisecond)
 			})
@@ -131,7 +131,14 @@ func (w *Word) canWalk(toPosition string) bool {
 	w.coordinates = append(w.coordinates, *newCoord)
 	stringWord := string(w.word)
 	if w.dictionary.IsWord(stringWord) {
-		addFoundWord(stringWord)
+
+		fullPathWalked := ""
+		for _, coord := range w.coordinates {
+			fullPathWalked += fmt.Sprintf("(%d,%d)", coord.X+1, coord.Y+1)
+		}
+
+		wordAndFullPathWalked := fmt.Sprintf("%s %s", stringWord, fullPathWalked)
+		addFoundWord(wordAndFullPathWalked)
 	}
 
 	return w.dictionary.IsPrefix(stringWord)
@@ -240,63 +247,79 @@ func main() {
 		Directions = append(Directions, B)
 		Directions = append(Directions, BL)
 
-		for i := 0; i < 10; i++ {
+		dimX, dimY := matrix.GetDimensions()
 
-			start := &Word{}
+		allFoundWordsList := make([]string, 0, 128)
 
-			start.word = make([]rune, 0)
-			start.coordinates = make([]Coord, 0)
-			start.matrix = matrix
-			start.dictionary = dict
-			coord := &Coord{}
-			dimX, dimY := matrix.GetDimensions()
+		for startX := range dimX {
+			for startY := range dimY {
 
-			for {
-				coord.X, coord.Y = rand.Intn(dimX), rand.Intn(dimY)
-				if matrix.GetMatrix()[coord.X][coord.Y] != ' ' {
-					break
+				start := &Word{}
+
+				start.word = make([]rune, 0)
+				start.coordinates = make([]Coord, 0)
+				start.matrix = matrix
+				start.dictionary = dict
+				coord := &Coord{
+					X: startX,
+					Y: startY,
 				}
-			}
-			//coord.X, coord.Y = rand.Intn(coord.X), rand.Intn(coord.Y)
+				start.word = append(start.word, matrix.GetMatrix()[startX][startY])
+				start.coordinates = append(start.coordinates, *coord)
 
-			start.word = append(start.word, matrix.GetMatrix()[coord.X][coord.Y])
-			start.coordinates = append(start.coordinates, *coord)
+				// Initialize foundWords map
+				foundWords = make(map[string]bool)
 
-			// Initialize foundWords map
-			foundWords = make(map[string]bool)
-
-			var wg sync.WaitGroup
-			limitGoroutines := make(chan struct{}, MAX_GOROUTINES)
-			wg.Go(func() {
-				toWalk(*start, limitGoroutines)
-			})
-			fmt.Println("Waiting for words to be found...")
-			wg.Wait()
-
-			if len(foundWords) > 0 {
-				// Print all found words
-				fmt.Println("Found words:")
-				foundWordsList := make([]string, 0, len(foundWords))
-				for word := range foundWords {
-					foundWordsList = append(foundWordsList, word)
-				}
-				sort.Slice(foundWordsList, func(i, j int) bool {
-					return len(foundWordsList[i]) > len(foundWordsList[j])
+				var wg sync.WaitGroup
+				limitGoroutines := make(chan struct{}, MAX_GOROUTINES)
+				wg.Go(func() {
+					toWalk(*start, limitGoroutines)
 				})
-				//Print in 3 columns, paddind with 2 spaces based on the length of the longest word
-				maxLength := len(foundWordsList[0])
-				for count, word := range foundWordsList {
-					fmt.Printf("%-*.*s ", maxLength, maxLength, word)
-					if (count+1)%3 == 0 {
-						fmt.Println()
+				//fmt.Println("Waiting for words to be found...")
+				wg.Wait()
+
+				fmt.Printf("Found words for %d,%d:\n", startX, startY)
+				if len(foundWords) > 0 {
+
+					// Print all found words
+					foundWordsList := make([]string, 0, len(foundWords))
+					for word := range foundWords {
+						foundWordsList = append(foundWordsList, word)
 					}
+					allFoundWordsList = append(allFoundWordsList, foundWordsList...)
+
+					sortAndPrint(foundWordsList)
+				} else {
+					fmt.Println("No words found...")
 				}
-				fmt.Println()
-				fmt.Println()
 				time.Sleep(1000 * time.Millisecond)
-			} else {
-				fmt.Println("No words found")
 			}
 		}
+
+		fmt.Println("All found words:")
+		sortAndPrint(allFoundWordsList)
+		time.Sleep(5000 * time.Millisecond)
 	}
+}
+
+func sortAndPrint(allFoundWordsList []string) {
+	sort.Slice(allFoundWordsList, func(i, j int) bool {
+		return len(allFoundWordsList[i]) > len(allFoundWordsList[j])
+	})
+	maxLength := len(allFoundWordsList[0])
+	count := 0
+	for _, word := range allFoundWordsList {
+		fmt.Printf("%-*.*s ", maxLength, maxLength, word)
+		if maxLength > 50 {
+			maxLength = len(word)
+			count = 2
+		}
+		if (count+1)%3 == 0 {
+			fmt.Println()
+		}
+		count++
+	}
+	fmt.Println()
+	//fmt.Println()
+	//time.Sleep(1000 * time.Millisecond)
 }
