@@ -44,7 +44,7 @@ func TestWordSearchDirections(t *testing.T) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Test each direction individually
 	directions := []Direction{
@@ -113,7 +113,7 @@ func TestWordSearchFromAllPositions(t *testing.T) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Search from all positions in all directions
 	searcher.SearchAllWords(1) // Use single worker for deterministic results
@@ -172,7 +172,7 @@ func TestWordSearchWithSpaces(t *testing.T) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Search from all positions
 	searcher.SearchAllWords(1)
@@ -240,7 +240,7 @@ func TestWordSearchPerformance(t *testing.T) {
 	for _, numWorkers := range workerCounts {
 		t.Run(fmt.Sprintf("Workers_%d", numWorkers), func(t *testing.T) {
 			// Create new searcher for each test
-			searcher := NewWordSearcher(matrix, dict)
+			searcher := NewWordSimpleSearcher(matrix, dict)
 
 			// Time the search
 			start := time.Now()
@@ -288,7 +288,7 @@ func TestWordSearchThreadSafety(t *testing.T) {
 	}
 
 	// Test with multiple workers to stress thread safety
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 	searcher.SearchAllWords(8) // Use 8 workers
 
 	// Get results multiple times to check for race conditions

@@ -13,65 +13,17 @@ import (
 
 // Fixed errors for reuse
 var (
-	ErrOutOfBoundariesLeft   = errors.New("out of boundaries <")
-	ErrOutOfBoundariesRight  = errors.New("out of boundaries >")
-	ErrOutOfBoundariesTop    = errors.New("out of boundaries ^")
-	ErrOutOfBoundariesBottom = errors.New("out of boundaries v")
-	ErrEmptyMatrix           = errors.New("matriz vazia")
-	ErrFileOpen              = errors.New("erro ao abrir arquivo")
-	ErrFileRead              = errors.New("erro ao ler arquivo")
+	ErrEmptyMatrix = errors.New("matriz vazia")
+	ErrFileOpen    = errors.New("erro ao abrir arquivo")
+	ErrFileRead    = errors.New("erro ao ler arquivo")
 )
 
 const (
 	SIMULATE_SINGLE_THREAD = false
 	MAX_GOROUTINES         = 32
 	MIN_WORD_LENGTH        = 8
+	MODE_SQUARE_SEARCH     = true
 )
-
-// WordResult representa uma palavra encontrada na matriz
-type WordResult struct {
-	Word      string
-	StartRow  int
-	StartCol  int
-	Direction string
-	Length    int
-}
-
-// Direction representa uma direção de busca
-type Direction struct {
-	Name     string
-	Symbol   string
-	DeltaRow int
-	DeltaCol int
-}
-
-// WordSearcher representa o sistema de busca de palavras
-type WordSearcher struct {
-	matrix     *LetterMatrix
-	dictionary *Dictionary
-	directions []Direction
-	results    []WordResult
-	seen       map[string]bool // Para evitar duplicatas
-	mutex      sync.Mutex
-}
-
-// T B L R (Top, Bottom, Left, Right)
-
-type Cell struct {
-	Letter      rune
-	DoubleScore bool //Only on V2
-	RowEater    bool //Only on V2
-}
-type Word struct {
-	word        []rune
-	coordinates []Coord
-	matrix      *LetterMatrix
-	dictionary  *Dictionary
-}
-type Coord struct {
-	X int
-	Y int
-}
 
 //var chFoundWords chan []rune
 
@@ -89,25 +41,26 @@ func addFoundWord(word string) {
 func toWalk(word Word, limitGoroutines chan struct{}) {
 	//word.PrintBreadCrumb()
 	var wg sync.WaitGroup
-	for _, dir := range Directions {
+	for _, dir := range *word.directions {
 		//Clone the word
 		newWord := Word{
 			word:        make([]rune, len(word.word)),
 			coordinates: make([]Coord, len(word.coordinates)),
 			matrix:      word.matrix,
 			dictionary:  word.dictionary,
+			directions:  word.directions,
 		}
 		copy(newWord.word, word.word)
 		copy(newWord.coordinates, word.coordinates)
 		if newWord.canWalk(dir) {
-			time.Sleep(10 * time.Millisecond)
+			//time.Sleep(10 * time.Millisecond)
 			//fmt.Printf(">")
 			limitGoroutines <- struct{}{}
 			wg.Go(func() {
 				toWalk(newWord, limitGoroutines)
 				//fmt.Printf("\b")
 				<-limitGoroutines
-				time.Sleep(10 * time.Millisecond)
+				//time.Sleep(10 * time.Millisecond)
 			})
 			wg.Wait()
 		}
@@ -155,53 +108,6 @@ func (w *Word) hasVisitedCell(coord Coord) bool {
 	return false
 }
 
-func (c *Coord) next(pos string, rows int, cols int) (*Coord, error) {
-	// Use simple variables for updates and validation
-	newRow, newCol := c.X, c.Y
-
-	if strings.Contains(pos, T) {
-		newRow--
-		if newRow < 0 {
-			return nil, ErrOutOfBoundariesLeft
-		}
-	}
-	if strings.Contains(pos, B) {
-		newRow++
-		if newRow >= rows {
-			return nil, ErrOutOfBoundariesRight
-		}
-	}
-	if strings.Contains(pos, L) {
-		newCol--
-		if newCol < 0 {
-			return nil, ErrOutOfBoundariesTop
-		}
-	}
-	if strings.Contains(pos, R) {
-		newCol++
-		if newCol >= cols {
-			return nil, ErrOutOfBoundariesBottom
-		}
-	}
-
-	// Only create Coord object if all validations pass
-	return &Coord{X: newRow, Y: newCol}, nil
-}
-
-const (
-	L  = "L"
-	R  = "R"
-	T  = "T"
-	B  = "B"
-	TL = "TL"
-	TR = "TR"
-	BL = "BL"
-	BR = "BR"
-)
-
-// slice of directions
-var Directions []string
-
 func main() {
 	fmt.Println("=== WordGo - Buscador de Palavras em Matriz de Letras ===")
 
@@ -223,82 +129,100 @@ func main() {
 	dict.PrintDictionaryStats()
 	fmt.Println()
 
+	directions := NewDirections()
+
 	// Iniciar busca de palavras
 	fmt.Println("\n=== Iniciando Busca de Palavras ===")
-	searcher := NewWordSearcher(matrix, dict)
 
 	if os.Getenv("CFG_SIMPLE") == "true" {
+		simpleSearcher := NewWordSimpleSearcher(matrix, dict)
 
 		// Usar 4 workers para processamento paralelo
 		numWorkers := 4
 		fmt.Printf("Iniciando busca com %d workers...\n", numWorkers)
-		searcher.SearchAllWords(numWorkers)
+		simpleSearcher.SearchAllWords(numWorkers)
 
 		// Exibir resultados
-		searcher.PrintResults()
-	} else {
-		Directions = make([]string, 8)
-		Directions = append(Directions, L)
-		Directions = append(Directions, TL)
-		Directions = append(Directions, T)
-		Directions = append(Directions, TR)
-		Directions = append(Directions, R)
-		Directions = append(Directions, BR)
-		Directions = append(Directions, B)
-		Directions = append(Directions, BL)
+		simpleSearcher.PrintResults()
+		time.Sleep(5000 * time.Millisecond)
+		return
+	}
 
-		dimX, dimY := matrix.GetDimensions()
+	dimX, dimY := matrix.GetDimensions()
 
-		allFoundWordsList := make([]string, 0, 128)
+	allFoundWordsList := make([]string, 0, 128)
 
-		for startX := range dimX {
-			for startY := range dimY {
+	for startX := range dimX {
+		for startY := range dimY {
+			fmt.Printf("(%d,%d) -> ", startX+1, startY+1)
+			if matrix.GetMatrix()[startX][startY] == ' ' {
+				continue
+			}
 
-				start := &Word{}
+			start := &Word{}
 
-				start.word = make([]rune, 0)
-				start.coordinates = make([]Coord, 0)
-				start.matrix = matrix
-				start.dictionary = dict
-				coord := &Coord{
-					X: startX,
-					Y: startY,
+			start.word = make([]rune, 0)
+			start.coordinates = make([]Coord, 0)
+			start.matrix = matrix
+			start.dictionary = dict
+			start.directions = directions
+			coord := &Coord{
+				X: startX,
+				Y: startY,
+			}
+			start.word = append(start.word, matrix.GetMatrix()[startX][startY])
+			start.coordinates = append(start.coordinates, *coord)
+
+			// Initialize foundWords map
+			foundWords = make(map[string]bool)
+
+			var wg sync.WaitGroup
+			limitGoroutines := make(chan struct{}, MAX_GOROUTINES)
+			wg.Go(func() {
+				toWalk(*start, limitGoroutines)
+			})
+			//fmt.Println("Waiting for words to be found...")
+			wg.Wait()
+
+			if len(foundWords) > 0 {
+				fmt.Printf("found words: ")
+
+				// Print all found words
+				foundWordsList := make([]string, 0, len(foundWords))
+				for word := range foundWords {
+					foundWordsList = append(foundWordsList, word)
 				}
-				start.word = append(start.word, matrix.GetMatrix()[startX][startY])
-				start.coordinates = append(start.coordinates, *coord)
+				allFoundWordsList = append(allFoundWordsList, foundWordsList...)
 
-				// Initialize foundWords map
-				foundWords = make(map[string]bool)
+				sortAndPrint(foundWordsList)
+				// } else {
+				// 	fmt.Println("No words found...")
+			} else {
+				fmt.Println()
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
 
-				var wg sync.WaitGroup
-				limitGoroutines := make(chan struct{}, MAX_GOROUTINES)
-				wg.Go(func() {
-					toWalk(*start, limitGoroutines)
-				})
-				//fmt.Println("Waiting for words to be found...")
-				wg.Wait()
-
-				fmt.Printf("Found words for %d,%d:\n", startX, startY)
-				if len(foundWords) > 0 {
-
-					// Print all found words
-					foundWordsList := make([]string, 0, len(foundWords))
-					for word := range foundWords {
-						foundWordsList = append(foundWordsList, word)
-					}
-					allFoundWordsList = append(allFoundWordsList, foundWordsList...)
-
-					sortAndPrint(foundWordsList)
-				} else {
-					fmt.Println("No words found...")
-				}
-				time.Sleep(1000 * time.Millisecond)
+	fmt.Println("All found words:")
+	sortAndPrint(allFoundWordsList)
+	time.Sleep(5000 * time.Millisecond)
+	if MODE_SQUARE_SEARCH {
+		filteredWordsList := make([]string, 0)
+		for _, word := range allFoundWordsList {
+			if strings.Contains(word, "(4,4)") {
+				filteredWordsList = append(filteredWordsList, word)
 			}
 		}
-
-		fmt.Println("All found words:")
-		sortAndPrint(allFoundWordsList)
+		fmt.Println("\n\n\nAll found words in (4,4):")
+		if len(filteredWordsList) == 0 {
+			fmt.Printf("no words found... BOOO HOOO")
+			time.Sleep(5000 * time.Millisecond)
+			return
+		}
+		sortAndPrint(filteredWordsList)
 		time.Sleep(5000 * time.Millisecond)
+		return
 	}
 }
 
@@ -310,9 +234,15 @@ func sortAndPrint(allFoundWordsList []string) {
 	count := 0
 	for _, word := range allFoundWordsList {
 		fmt.Printf("%-*.*s ", maxLength, maxLength, word)
-		if maxLength > 50 {
-			maxLength = len(word)
+		if maxLength > 70 {
 			count = 2
+		} else if maxLength > 50 {
+			if count == 0 {
+				count = 1
+			}
+		}
+		if maxLength > 20 {
+			maxLength = len(word)
 		}
 		if (count+1)%3 == 0 {
 			fmt.Println()

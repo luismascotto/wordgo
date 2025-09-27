@@ -264,7 +264,7 @@ func TestWordSearcher(t *testing.T) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Test searching from specific position
 	searcher.SimpleSearchFromPosition(0, 0, Direction{R, "→", 0, 1})
@@ -333,7 +333,7 @@ func TestWordSearcherParallel(t *testing.T) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Test parallel search with 2 workers
 	searcher.SearchAllWords(2)
@@ -453,7 +453,7 @@ func BenchmarkWordSearch(b *testing.B) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Reset timer and run benchmark
 	b.ResetTimer()

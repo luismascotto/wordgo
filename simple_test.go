@@ -42,7 +42,7 @@ func TestBasicWordSearch(t *testing.T) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Search from all positions in all directions
 	searcher.SearchAllWords(1) // Use single worker for deterministic results
@@ -106,7 +106,7 @@ func TestWordSearchWithSpacesSimple(t *testing.T) {
 	}
 
 	// Create word searcher
-	searcher := NewWordSearcher(matrix, dict)
+	searcher := NewWordSimpleSearcher(matrix, dict)
 
 	// Search from all positions
 	searcher.SearchAllWords(1)
