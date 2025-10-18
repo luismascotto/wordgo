@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -32,88 +33,21 @@ const (
 var foundWords map[string]bool
 var foundWordsMutex sync.Mutex
 
-func addFoundWord(word string) {
-	foundWordsMutex.Lock()
-	defer foundWordsMutex.Unlock()
-	foundWords[word] = true
-}
-
-func toWalk(word Word, limitGoroutines chan struct{}) {
-	//word.PrintBreadCrumb()
-	var wg sync.WaitGroup
-	for _, dir := range *word.directions {
-		//Clone the word
-		newWord := Word{
-			word:        make([]rune, len(word.word)),
-			coordinates: make([]Coord, len(word.coordinates)),
-			matrix:      word.matrix,
-			dictionary:  word.dictionary,
-			directions:  word.directions,
-		}
-		copy(newWord.word, word.word)
-		copy(newWord.coordinates, word.coordinates)
-		if newWord.canWalk(dir) {
-			//time.Sleep(10 * time.Millisecond)
-			//fmt.Printf(">")
-			limitGoroutines <- struct{}{}
-			wg.Go(func() {
-				toWalk(newWord, limitGoroutines)
-				//fmt.Printf("\b")
-				<-limitGoroutines
-				//time.Sleep(10 * time.Millisecond)
-			})
-			wg.Wait()
-		}
-	}
-}
-
-// T B L R
-func (w *Word) canWalk(toPosition string) bool {
-	rows, cols := w.matrix.GetDimensions()
-	newCoord, err := w.coordinates[len(w.coordinates)-1].next(toPosition, rows, cols)
-
-	if err != nil {
-		return false
-	}
-
-	if w.hasVisitedCell(*newCoord) {
-		return false
-	}
-
-	w.word = append(w.word, w.matrix.GetMatrix()[newCoord.X][newCoord.Y])
-	w.coordinates = append(w.coordinates, *newCoord)
-	stringWord := string(w.word)
-	if w.dictionary.IsWord(stringWord) {
-
-		fullPathWalked := ""
-		for _, coord := range w.coordinates {
-			fullPathWalked += fmt.Sprintf("(%d,%d)", coord.X+1, coord.Y+1)
-		}
-
-		wordAndFullPathWalked := fmt.Sprintf("%s %s", stringWord, fullPathWalked)
-		addFoundWord(wordAndFullPathWalked)
-	}
-
-	return w.dictionary.IsPrefix(stringWord)
-}
-
-// hasVisitedCell checks if a coordinate was already visited by walking backwards through the path
-func (w *Word) hasVisitedCell(coord Coord) bool {
-	// Walk backwards through the coordinates to check for repeated visits
-	for i := len(w.coordinates) - 1; i >= 0; i-- {
-		if w.coordinates[i].X == coord.X && w.coordinates[i].Y == coord.Y {
-			return true
-		}
-	}
-	return false
-}
-
 func main() {
 	fmt.Println("=== WordGo - Buscador de Palavras em Matriz de Letras ===")
 
+	// Definir flag para arquivo de matriz
+	matrixFile := flag.String("matrix", "res/example.txt", "Arquivo de matriz de letras para carregar")
+	flag.Parse()
+
+	// Validar se o arquivo especificado existe
+	if _, err := os.Stat(*matrixFile); os.IsNotExist(err) {
+		log.Fatalf("Arquivo de matriz não encontrado: %s", *matrixFile)
+	}
+
 	// Carregar matriz de letras
-	fmt.Println("Carregando matriz de letras...")
-	matrix, err := NewLetterMatrix("res/example.txt")
+	fmt.Printf("Carregando matriz de letras de: %s\n", *matrixFile)
+	matrix, err := NewLetterMatrix(*matrixFile)
 	if err != nil {
 		log.Fatalf("Erro ao carregar matriz: %v", err)
 	}
@@ -194,18 +128,18 @@ func main() {
 				}
 				allFoundWordsList = append(allFoundWordsList, foundWordsList...)
 
-				sortAndPrint(foundWordsList)
+				sortAndPrint(foundWordsList, []string{})
 				// } else {
 				// 	fmt.Println("No words found...")
 			} else {
 				fmt.Println()
 			}
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
 	fmt.Println("All found words:")
-	sortAndPrint(allFoundWordsList)
+	sortAndPrint(allFoundWordsList, []string{"(4,4)"})
 	time.Sleep(5000 * time.Millisecond)
 	if MODE_SQUARE_SEARCH {
 		filteredWordsList := make([]string, 0)
@@ -220,14 +154,107 @@ func main() {
 			time.Sleep(5000 * time.Millisecond)
 			return
 		}
-		sortAndPrint(filteredWordsList)
+		sortAndPrint(filteredWordsList, []string{})
 		time.Sleep(5000 * time.Millisecond)
 		return
 	}
 }
 
-func sortAndPrint(allFoundWordsList []string) {
+func addFoundWord(word string) {
+	foundWordsMutex.Lock()
+	defer foundWordsMutex.Unlock()
+	foundWords[word] = true
+}
+
+func toWalk(word Word, limitGoroutines chan struct{}) {
+	//word.PrintBreadCrumb()
+	var wg sync.WaitGroup
+	for _, dir := range *word.directions {
+		//Clone the word
+		newWord := Word{
+			word:        make([]rune, len(word.word)),
+			coordinates: make([]Coord, len(word.coordinates)),
+			matrix:      word.matrix,
+			dictionary:  word.dictionary,
+			directions:  word.directions,
+		}
+		copy(newWord.word, word.word)
+		copy(newWord.coordinates, word.coordinates)
+		if newWord.canWalk(dir) {
+			//time.Sleep(10 * time.Millisecond)
+			//fmt.Printf(">")
+			limitGoroutines <- struct{}{}
+			wg.Go(func() {
+				toWalk(newWord, limitGoroutines)
+				//fmt.Printf("\b")
+				<-limitGoroutines
+				//time.Sleep(10 * time.Millisecond)
+			})
+			wg.Wait()
+		}
+	}
+}
+
+// T B L R
+func (w *Word) canWalk(toPosition string) bool {
+	rows, cols := w.matrix.GetDimensions()
+	newCoord, err := w.coordinates[len(w.coordinates)-1].next(toPosition, rows, cols)
+
+	if err != nil {
+		return false
+	}
+
+	if w.hasVisitedCell(*newCoord) {
+		return false
+	}
+
+	w.word = append(w.word, w.matrix.GetMatrix()[newCoord.X][newCoord.Y])
+	w.coordinates = append(w.coordinates, *newCoord)
+	stringWord := string(w.word)
+	if w.dictionary.IsWord(stringWord) {
+
+		fullPathWalked := ""
+		for _, coord := range w.coordinates {
+			fullPathWalked += fmt.Sprintf("(%d,%d)", coord.X+1, coord.Y+1)
+		}
+
+		wordAndFullPathWalked := fmt.Sprintf("%s %s", stringWord, fullPathWalked)
+		addFoundWord(wordAndFullPathWalked)
+	}
+
+	return w.dictionary.IsPrefix(stringWord)
+}
+
+// hasVisitedCell checks if a coordinate was already visited by walking backwards through the path
+func (w *Word) hasVisitedCell(coord Coord) bool {
+	// Walk backwards through the coordinates to check for repeated visits
+	for i := len(w.coordinates) - 1; i >= 0; i-- {
+		if w.coordinates[i].X == coord.X && w.coordinates[i].Y == coord.Y {
+			return true
+		}
+	}
+	return false
+}
+
+func sortAndPrint(allFoundWordsList []string, preferredCoordinates []string) {
 	sort.Slice(allFoundWordsList, func(i, j int) bool {
+
+		found_i := 0
+		found_j := 0
+		for _, coord := range preferredCoordinates {
+			if strings.Contains(allFoundWordsList[i], coord) {
+				found_i++
+			}
+			if strings.Contains(allFoundWordsList[j], coord) {
+				found_j++
+			}
+		}
+		if found_i > found_j {
+			return true
+		}
+		if found_i < found_j {
+			return false
+		}
 		return len(allFoundWordsList[i]) > len(allFoundWordsList[j])
 	})
 	maxLength := len(allFoundWordsList[0])
