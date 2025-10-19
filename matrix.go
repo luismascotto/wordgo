@@ -4,13 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"unicode"
 )
 
 // LetterMatrix representa a matriz de letras onde as palavras serão buscadas
 type LetterMatrix struct {
-	matrix [][]rune
-	rows   int
-	cols   int
+	matrix   [][]rune
+	rows     int
+	cols     int
+	specials []string
 }
 
 // NewLetterMatrix cria uma nova matriz de letras a partir de um arquivo
@@ -44,6 +46,7 @@ func NewLetterMatrix(filename string) (*LetterMatrix, error) {
 		return nil, ErrEmptyMatrix
 	}
 
+	specialCellsCoordStrings := []string{}
 	// Padronizar todas as linhas para ter o mesmo comprimento
 	for i, row := range matrix {
 		if len(row) < maxCols {
@@ -55,14 +58,22 @@ func NewLetterMatrix(filename string) (*LetterMatrix, error) {
 			}
 			matrix[i] = paddedRow
 		}
+
+		for pos, cell := range matrix[i] {
+			//runes.upper(cell)
+			if unicode.IsUpper(cell) {
+				specialCellsCoordStrings = append(specialCellsCoordStrings, fmt.Sprintf("(%d,%d)", i+1, pos+1))
+			}
+		}
 	}
 
 	cols := maxCols
 
 	return &LetterMatrix{
-		matrix: matrix,
-		rows:   len(matrix),
-		cols:   cols,
+		matrix:   matrix,
+		rows:     len(matrix),
+		cols:     cols,
+		specials: specialCellsCoordStrings,
 	}, nil
 }
 

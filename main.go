@@ -139,24 +139,26 @@ func main() {
 	}
 
 	fmt.Println("All found words:")
-	sortAndPrint(allFoundWordsList, []string{"(4,4)"})
+	sortAndPrint(allFoundWordsList, matrix.specials)
 	time.Sleep(5000 * time.Millisecond)
-	if MODE_SQUARE_SEARCH {
+	if len(matrix.specials) > 0 {
 		filteredWordsList := make([]string, 0)
 		for _, word := range allFoundWordsList {
-			if strings.Contains(word, "(4,4)") {
-				filteredWordsList = append(filteredWordsList, word)
+			for _, special := range matrix.specials {
+				if strings.Contains(word, special) {
+					filteredWordsList = append(filteredWordsList, word)
+					break
+				}
 			}
 		}
-		fmt.Println("\n\n\nAll found words in (4,4):")
+		fmt.Println("\n\n\nAll found words in specials:")
 		if len(filteredWordsList) == 0 {
 			fmt.Printf("no words found... BOOO HOOO")
 			time.Sleep(5000 * time.Millisecond)
-			return
+		} else {
+			sortAndPrint(filteredWordsList, matrix.specials)
+			time.Sleep(5000 * time.Millisecond)
 		}
-		sortAndPrint(filteredWordsList, []string{})
-		time.Sleep(5000 * time.Millisecond)
-		return
 	}
 }
 
@@ -210,7 +212,7 @@ func (w *Word) canWalk(toPosition string) bool {
 
 	w.word = append(w.word, w.matrix.GetMatrix()[newCoord.X][newCoord.Y])
 	w.coordinates = append(w.coordinates, *newCoord)
-	stringWord := string(w.word)
+	stringWord := strings.ToUpper(string(w.word))
 	if w.dictionary.IsWord(stringWord) {
 
 		fullPathWalked := ""
@@ -237,6 +239,11 @@ func (w *Word) hasVisitedCell(coord Coord) bool {
 }
 
 func sortAndPrint(allFoundWordsList []string, preferredCoordinates []string) {
+	if len(allFoundWordsList) == 0 {
+		fmt.Println("No words found...")
+		return
+	}
+
 	sort.Slice(allFoundWordsList, func(i, j int) bool {
 
 		found_i := 0
