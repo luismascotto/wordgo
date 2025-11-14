@@ -137,16 +137,38 @@ func (lm *LetterMatrix) PrintMatrix() {
 func (lm *LetterMatrix) RemoveLetters(coordinates []Coord) {
 	for _, coord := range coordinates {
 		lm.matrix[coord.X][coord.Y] = '-'
+		// Verificar se está removendo letra especial
+		for _, special := range lm.specials {
+			if strings.Contains(special, fmt.Sprintf("(%d,%d)", coord.X+1, coord.Y+1)) {
+				lm.specials = removeStringFromSlice(lm.specials, special)
+			}
+		}
 	}
 	// collapse Y moving down the letters
 	for i := 0; i < lm.rows; i++ {
 		for j := 0; j < lm.cols; j++ {
 			if lm.matrix[i][j] == '-' {
 				for k := i; k > 0; k-- {
+					// Verificar se letra especial se moveu
+					for _, special := range lm.specials {
+						if strings.Contains(special, fmt.Sprintf("(%d,%d)", k-1+1, j+1)) {
+							lm.specials = removeStringFromSlice(lm.specials, special)
+							lm.specials = append(lm.specials, fmt.Sprintf("(%d,%d)", k+1, j+1))
+						}
+					}
 					lm.matrix[k][j] = lm.matrix[k-1][j]
 				}
 				lm.matrix[0][j] = ' '
 			}
 		}
 	}
+}
+
+func removeStringFromSlice(s []string, special string) []string {
+	for i, v := range s {
+		if v == special {
+			return append(s[:i], s[i+1:]...)
+		}
+	}
+	return s
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -96,7 +97,7 @@ func TestNewLetterMatrixWithPadding(t *testing.T) {
 }
 
 func TestRemoveLetter(t *testing.T) {
-	matrixString := "ABC\nDEF\nGHI"
+	matrixString := "abc\ndef\nGhi"
 	matrix, err := NewLetterMatrixFromString(matrixString)
 	if err != nil {
 		t.Fatalf("Failed to create matrix: %v", err)
@@ -114,20 +115,25 @@ func TestRemoveLetter(t *testing.T) {
 	for i, row := range matrixData {
 		t.Logf("Row %d: %s", i, string(row))
 	}
+	t.Logf("Specials: %v", matrix.specials)
 
 	// Verify the last row is "DHI"
-	if lastRow != "DHI" {
+	if strings.ToUpper(lastRow) != "DHI" {
 		t.Errorf("Expected last row to be 'DHI', got '%s'", lastRow)
 	}
 }
 
 func TestRemoveLetters(t *testing.T) {
-	matrixString := "ABC\nDEF\nGHI"
+	matrixString := "aBc\ndef\nghi"
 	matrix, err := NewLetterMatrixFromString(matrixString)
 	if err != nil {
 		t.Fatalf("Failed to create matrix: %v", err)
 	}
-
+	t.Logf("Matrix before removal:")
+	for i, row := range matrix.GetMatrix() {
+		t.Logf("Row %d: %s", i, string(row))
+	}
+	t.Logf("Specials: %v", matrix.specials)
 	// Remove 'GEC'
 	matrix.RemoveLetters([]Coord{{X: 2, Y: 1}, {X: 1, Y: 1}, {X: 0, Y: 2}})
 
@@ -139,19 +145,20 @@ func TestRemoveLetters(t *testing.T) {
 	for i, row := range matrixData {
 		t.Logf("Row %d: %s", i, string(row))
 	}
+	t.Logf("Specials: %v", matrix.specials)
 	firstRow := string(matrixData[0])
 	secondRow := string(matrixData[1])
 	lastRow := string(matrixData[2])
 	// Verify the first row is "ABC"
-	if firstRow != "A  " {
+	if strings.ToUpper(firstRow) != "A  " {
 		t.Errorf("Expected first row to be 'A  ', got '%s'", firstRow)
 	}
 	// Verify the second row is "DEF"
-	if secondRow != "D F" {
+	if strings.ToUpper(secondRow) != "D F" {
 		t.Errorf("Expected second row to be 'D F', got '%s'", secondRow)
 	}
 	// Verify the last row is "DHI"
-	if lastRow != "GBI" {
+	if strings.ToUpper(lastRow) != "GBI" {
 		t.Errorf("Expected last row to be 'GBI', got '%s'", lastRow)
 	}
 }
