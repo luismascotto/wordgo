@@ -6,13 +6,6 @@ import (
 	"testing"
 )
 
-// AI_GENERATED_CODE_START
-// [AI Generated] Data: 19/12/2024
-// Descrição: Testes simples para verificar funcionalidade básica
-// Gerado por: Cursor AI
-// Versão: Go 1.21
-// AI_GENERATED_CODE_END
-
 // TestBasicWordSearch tests basic word search functionality
 func TestBasicWordSearch(t *testing.T) {
 	// Create a simple test matrix

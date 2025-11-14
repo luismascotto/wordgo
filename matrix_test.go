@@ -1,8 +1,99 @@
 package main
 
 import (
+	"os"
 	"testing"
 )
+
+// TestNewLetterMatrix tests matrix loading functionality
+func TestNewLetterMatrix(t *testing.T) {
+	// Create a temporary test matrix file
+	testMatrix := "ABCD\nEFGH\nIJKL"
+	tmpFile, err := os.CreateTemp("", "test_matrix_*.txt")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString(testMatrix)
+	if err != nil {
+		t.Fatalf("Failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	// Test loading the matrix
+	matrix, err := NewLetterMatrixFromFile(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("NewLetterMatrix failed: %v", err)
+	}
+
+	// Verify dimensions
+	rows, cols := matrix.GetDimensions()
+	if rows != 3 {
+		t.Errorf("Expected 3 rows, got %d", rows)
+	}
+	if cols != 4 {
+		t.Errorf("Expected 4 columns, got %d", cols)
+	}
+
+	// Verify content
+	matrixData := matrix.GetMatrix()
+	expected := [][]rune{
+		{'A', 'B', 'C', 'D'},
+		{'E', 'F', 'G', 'H'},
+		{'I', 'J', 'K', 'L'},
+	}
+
+	for i, row := range matrixData {
+		for j, char := range row {
+			if char != expected[i][j] {
+				t.Errorf("Expected %c at [%d][%d], got %c", expected[i][j], i, j, char)
+			}
+		}
+	}
+}
+
+// TestNewLetterMatrixWithPadding tests matrix loading with different row lengths
+func TestNewLetterMatrixWithPadding(t *testing.T) {
+	// Create a test matrix with different row lengths
+	testMatrix := "ABC\nDEFGH\nIJ"
+	tmpFile, err := os.CreateTemp("", "test_matrix_pad_*.txt")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString(testMatrix)
+	if err != nil {
+		t.Fatalf("Failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	// Test loading the matrix
+	matrix, err := NewLetterMatrixFromFile(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("NewLetterMatrix failed: %v", err)
+	}
+
+	// Verify dimensions (should be padded to max length)
+	rows, cols := matrix.GetDimensions()
+	if rows != 3 {
+		t.Errorf("Expected 3 rows, got %d", rows)
+	}
+	if cols != 5 {
+		t.Errorf("Expected 5 columns (max length), got %d", cols)
+	}
+
+	// Verify padding
+	matrixData := matrix.GetMatrix()
+	// First row should be padded with spaces
+	if len(matrixData[0]) != 5 {
+		t.Errorf("First row should be padded to 5 columns")
+	}
+	if matrixData[0][3] != ' ' || matrixData[0][4] != ' ' {
+		t.Errorf("First row should be padded with spaces")
+	}
+}
 
 func TestRemoveLetter(t *testing.T) {
 	matrixString := "ABC\nDEF\nGHI"
