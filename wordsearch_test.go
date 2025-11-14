@@ -33,7 +33,7 @@ func TestWordSearchDirections(t *testing.T) {
 	defer os.Remove(dictFile.Name())
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(matrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(matrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestWordSearchFromAllPositions(t *testing.T) {
 	defer os.Remove(dictFile.Name())
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(matrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(matrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestWordSearchWithSpaces(t *testing.T) {
 	defer os.Remove(dictFile.Name())
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(matrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(matrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestWordSearchPerformance(t *testing.T) {
 	defer os.Remove(dictFile.Name())
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(matrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(matrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestWordSearchThreadSafety(t *testing.T) {
 	defer os.Remove(dictFile.Name())
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(matrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(matrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}

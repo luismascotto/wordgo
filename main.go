@@ -22,7 +22,7 @@ var (
 const (
 	SIMULATE_SINGLE_THREAD = false
 	MAX_GOROUTINES         = 32
-	MIN_WORD_LENGTH        = 8
+	MIN_WORD_LENGTH        = 6
 	MODE_SQUARE_SEARCH     = true
 )
 
@@ -47,7 +47,7 @@ func main() {
 
 	// Carregar matriz de letras
 	fmt.Printf("Carregando matriz de letras de: %s\n", *matrixFile)
-	matrix, err := NewLetterMatrix(*matrixFile)
+	matrix, err := NewLetterMatrixFromFile(*matrixFile)
 	if err != nil {
 		log.Fatalf("Erro ao carregar matriz: %v", err)
 	}
@@ -88,53 +88,7 @@ func main() {
 
 	for startX := range dimX {
 		for startY := range dimY {
-			fmt.Printf("(%d,%d) -> ", startX+1, startY+1)
-			if matrix.GetMatrix()[startX][startY] == ' ' {
-				continue
-			}
-
-			start := &Word{}
-
-			start.word = make([]rune, 0)
-			start.coordinates = make([]Coord, 0)
-			start.matrix = matrix
-			start.dictionary = dict
-			start.directions = directions
-			coord := &Coord{
-				X: startX,
-				Y: startY,
-			}
-			start.word = append(start.word, matrix.GetMatrix()[startX][startY])
-			start.coordinates = append(start.coordinates, *coord)
-
-			// Initialize foundWords map
-			foundWords = make(map[string]bool)
-
-			var wg sync.WaitGroup
-			limitGoroutines := make(chan struct{}, MAX_GOROUTINES)
-			wg.Go(func() {
-				toWalk(*start, limitGoroutines)
-			})
-			//fmt.Println("Waiting for words to be found...")
-			wg.Wait()
-
-			if len(foundWords) > 0 {
-				fmt.Printf("found words: ")
-
-				// Print all found words
-				foundWordsList := make([]string, 0, len(foundWords))
-				for word := range foundWords {
-					foundWordsList = append(foundWordsList, word)
-				}
-				allFoundWordsList = append(allFoundWordsList, foundWordsList...)
-
-				sortAndPrint(foundWordsList, []string{})
-				// } else {
-				// 	fmt.Println("No words found...")
-			} else {
-				fmt.Println()
-			}
-			time.Sleep(100 * time.Millisecond)
+			allFoundWordsList = searchStartingPoint(startX, startY, matrix, dict, directions, allFoundWordsList)
 		}
 	}
 
@@ -160,6 +114,57 @@ func main() {
 			time.Sleep(5000 * time.Millisecond)
 		}
 	}
+}
+
+func searchStartingPoint(startX int, startY int, matrix *LetterMatrix, dict *Dictionary, directions *[]string, allFoundWordsList []string) []string {
+	fmt.Printf("(%d,%d) -> ", startX+1, startY+1)
+	if matrix.GetMatrix()[startX][startY] == ' ' {
+		return allFoundWordsList
+	}
+
+	start := &Word{}
+
+	start.word = make([]rune, 0)
+	start.coordinates = make([]Coord, 0)
+	start.matrix = matrix
+	start.dictionary = dict
+	start.directions = directions
+	coord := &Coord{
+		X: startX,
+		Y: startY,
+	}
+	start.word = append(start.word, matrix.GetMatrix()[startX][startY])
+	start.coordinates = append(start.coordinates, *coord)
+
+	// Initialize foundWords map
+	foundWords = make(map[string]bool)
+
+	var wg sync.WaitGroup
+	limitGoroutines := make(chan struct{}, MAX_GOROUTINES)
+	wg.Go(func() {
+		toWalk(*start, limitGoroutines)
+	})
+	//fmt.Println("Waiting for words to be found...")
+	wg.Wait()
+
+	if len(foundWords) > 0 {
+		fmt.Printf("found words: ")
+
+		// Print all found words
+		foundWordsList := make([]string, 0, len(foundWords))
+		for word := range foundWords {
+			foundWordsList = append(foundWordsList, word)
+		}
+		allFoundWordsList = append(allFoundWordsList, foundWordsList...)
+
+		sortAndPrint(foundWordsList, []string{})
+		// } else {
+		// 	fmt.Println("No words found...")
+	} else {
+		fmt.Println()
+	}
+	time.Sleep(100 * time.Millisecond)
+	return allFoundWordsList
 }
 
 func addFoundWord(word string) {
@@ -222,6 +227,7 @@ func (w *Word) canWalk(toPosition string) bool {
 
 		wordAndFullPathWalked := fmt.Sprintf("%s %s", stringWord, fullPathWalked)
 		addFoundWord(wordAndFullPathWalked)
+		return true
 	}
 
 	return w.dictionary.IsPrefix(stringWord)

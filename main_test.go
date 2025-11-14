@@ -30,7 +30,7 @@ func TestNewLetterMatrix(t *testing.T) {
 	tmpFile.Close()
 
 	// Test loading the matrix
-	matrix, err := NewLetterMatrix(tmpFile.Name())
+	matrix, err := NewLetterMatrixFromFile(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("NewLetterMatrix failed: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestNewLetterMatrixWithPadding(t *testing.T) {
 	tmpFile.Close()
 
 	// Test loading the matrix
-	matrix, err := NewLetterMatrix(tmpFile.Name())
+	matrix, err := NewLetterMatrixFromFile(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("NewLetterMatrix failed: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestWordSearcher(t *testing.T) {
 	tmpDictFile.Close()
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(tmpMatrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(tmpMatrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
@@ -322,7 +322,7 @@ func TestWordSearcherParallel(t *testing.T) {
 	tmpDictFile.Close()
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(tmpMatrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(tmpMatrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
@@ -359,7 +359,7 @@ func TestWordSearcherParallel(t *testing.T) {
 // TestEdgeCases tests edge cases and error conditions
 func TestEdgeCases(t *testing.T) {
 	// Test empty matrix file
-	_, err := NewLetterMatrix("nonexistent_file.txt")
+	_, err := NewLetterMatrixFromFile("nonexistent_file.txt")
 	if err == nil {
 		t.Error("Expected error when loading nonexistent matrix file")
 	}
@@ -377,7 +377,7 @@ func TestEdgeCases(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	_, err = NewLetterMatrix(tmpFile.Name())
+	_, err = NewLetterMatrixFromFile(tmpFile.Name())
 	if err == nil {
 		t.Error("Expected error when loading empty matrix file")
 	}
@@ -395,7 +395,7 @@ func TestEdgeCases(t *testing.T) {
 	}
 	tmpFile2.Close()
 
-	matrix, err := NewLetterMatrix(tmpFile2.Name())
+	matrix, err := NewLetterMatrixFromFile(tmpFile2.Name())
 	if err != nil {
 		t.Fatalf("Failed to load single character matrix: %v", err)
 	}
@@ -442,7 +442,7 @@ func BenchmarkWordSearch(b *testing.B) {
 	tmpDictFile.Close()
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(tmpMatrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(tmpMatrixFile.Name())
 	if err != nil {
 		b.Fatalf("Failed to load test matrix: %v", err)
 	}

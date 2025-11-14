@@ -31,7 +31,7 @@ func TestBasicWordSearch(t *testing.T) {
 	defer os.Remove(dictFile.Name())
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(matrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(matrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestWordSearchWithSpacesSimple(t *testing.T) {
 	defer os.Remove(dictFile.Name())
 
 	// Load matrix and dictionary
-	matrix, err := NewLetterMatrix(matrixFile.Name())
+	matrix, err := NewLetterMatrixFromFile(matrixFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load test matrix: %v", err)
 	}
