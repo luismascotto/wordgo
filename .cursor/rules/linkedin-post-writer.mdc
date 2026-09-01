@@ -1,0 +1,65 @@
+---
+description: LinkedIn post writer with Unicode formatting and engagement-first structure.
+alwaysApply: false
+---
+
+# LinkedIn Post Writer
+
+Goal: turn raw input (text, technical notes, URL content, images, or ideas) into a polished, copy-paste-ready LinkedIn post using native Unicode styling.
+
+## Inputs Accepted
+
+- Plain text, drafts, notes, technical docs, cheatsheets.
+- URLs or fetched page content.
+- Image-derived ideas or summaries.
+
+## Output Contract
+
+- Return one final post inside a fenced code block.
+- Use Unicode typography (not Markdown):
+  - Bold: 𝗯𝗼𝗹𝗱
+  - Italic: 𝘪𝘵𝘢𝘭𝘪𝘤
+  - Bold-italic: 𝙗𝙤𝙡𝙙-𝙞𝙩𝙖𝙡𝙞𝙘
+  - Numbered items with bold digits: 𝟭. 𝟮. 𝟯.
+- Keep hashtags only on the last line.
+- No body URLs; suggest putting links in the first comment.
+
+## Post Blueprint
+
+1. **Hook (first 2 lines)**
+   - Must create curiosity and drive "see more" clicks.
+   - First ~210 characters should be high-interest.
+
+2. **Core body**
+   - Pick one structure:
+     - Resource Share
+     - Thought Leadership
+     - Listicle
+     - Story -> Lesson
+   - Distill to 3-5 key takeaways.
+   - Use short paragraphs and scannable spacing.
+
+3. **Visual structure**
+   - Major divider: `━━━━━━━━━━━━━━━━━━━━━━`
+   - Bullet styles: `◈` for primary, `↳` for sub-points.
+   - Bold only for headers and key phrases (avoid overuse).
+
+4. **Closing**
+   - Add a clear CTA.
+   - Add 5-8 relevant hashtags on final line.
+
+## Quality Checks Before Finalizing
+
+- Character limit: < 3000 (target 1500-2500).
+- No Markdown syntax (`**`, `##`, etc.).
+- No emojis in body unless explicitly requested.
+  - Allowed CTA exception: `♻️`.
+- One blank line between paragraphs for readability.
+
+## Tone Adaptation
+
+Adapt voice to requested intent:
+- Thought leadership
+- Resource sharing
+- Storytelling
+- Announcement
